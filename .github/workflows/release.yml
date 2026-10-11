@@ -1,0 +1,41 @@
+name: Release
+
+# Push a tag like v1.0.0 and this builds the macOS app and puts it on the
+# release page under fixed names, so the "latest" download links never change:
+#   .../releases/latest/download/Enhanced-for-Todoist-arm64.dmg  (Apple silicon)
+#   .../releases/latest/download/Enhanced-for-Todoist-x64.dmg    (Intel)
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  mac:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # No Apple Developer certificate: the app is signed ad hoc ("-"), which
+      # Apple silicon needs to run it, and is not notarized (see the README).
+      - run: npx electron-builder --mac -c.mac.identity=- --publish never
+      - name: Upload to the release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/*.dmg \
+            --title "Enhanced for Todoist Desktop ${GITHUB_REF_NAME#v}" \
+            --generate-notes || gh release upload "$GITHUB_REF_NAME" dist/*.dmg --clobber
+      - uses: actions/upload-artifact@v4
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        with:
+          name: dmg
+          path: dist/*.dmg
