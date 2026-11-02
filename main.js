@@ -10,17 +10,27 @@ const path = require('node:path');
 const APP_URL = (process.env.ENHANCED_URL || 'https://todoistenhanced.julesbertolino.fr/').trim();
 const APP_ORIGIN = new URL(APP_URL).origin;
 
-/* Option+Space by default. This side reads
-   `quickAddShortcut` from config.json in the app's data folder (Electron
-   accelerator syntax, e.g. "Alt+Shift+Space"), or QUICKADD_SHORTCUT. */
-function readShortcut() {
-  if (process.env.QUICKADD_SHORTCUT) return process.env.QUICKADD_SHORTCUT;
+/* Option+Space by default. It is chosen on the site (Settings, in the Mac app)
+   and kept as `quickAddShortcut` in config.json in the app's data folder, in
+   Electron accelerator syntax, e.g. "Alt+Shift+Space". QUICKADD_SHORTCUT in
+   the environment still wins, to try one without saving it. */
+const DEFAULT_SHORTCUT = 'Alt+Space';
+const configFile = () => path.join(app.getPath('userData'), 'config.json');
+
+function readConfig() {
   try {
-    const file = path.join(app.getPath('userData'), 'config.json');
-    return JSON.parse(fs.readFileSync(file, 'utf8')).quickAddShortcut || 'Alt+Space';
+    return JSON.parse(fs.readFileSync(configFile(), 'utf8')) || {};
   } catch {
-    return 'Alt+Space';
+    return {};
   }
+}
+
+function readShortcut() {
+  return process.env.QUICKADD_SHORTCUT || readConfig().quickAddShortcut || DEFAULT_SHORTCUT;
+}
+
+function saveShortcut(accelerator) {
+  fs.writeFileSync(configFile(), JSON.stringify({ ...readConfig(), quickAddShortcut: accelerator }, null, 2));
 }
 
 let main = null;
@@ -141,14 +151,30 @@ function toggleQuick() {
   else showQuick();
 }
 
+let registered = null;
+
+/** Takes the shortcut over from the previous one; if another app holds it, the previous one stays. */
+function useShortcut(accelerator) {
+  if (accelerator === registered) return true;
+  let ok = false;
+  try {
+    ok = globalShortcut.register(accelerator, toggleQuick);
+  } catch {
+    ok = false; // not a shortcut Electron understands
+  }
+  if (!ok) return false;
+  if (registered) globalShortcut.unregister(registered);
+  registered = accelerator;
+  return true;
+}
+
 function registerShortcut() {
   const accelerator = readShortcut();
-  const ok = globalShortcut.register(accelerator, toggleQuick);
-  if (!ok) {
+  if (!useShortcut(accelerator)) {
     new Notification({
       title: 'Enhanced for Todoist',
       body: `${accelerator} is already taken by another app. ` +
-        'Set another one in config.json: { "quickAddShortcut": "Alt+Shift+Space" }.',
+        'Choose another one in Settings, in the app.',
     }).show();
   }
 }
@@ -184,6 +210,14 @@ if (!app.requestSingleInstanceLock()) {
     createQuick();
     registerShortcut();
     ipcMain.on('quickadd:hide', hideQuick);
+    ipcMain.handle('shortcut:get', () => registered || readShortcut());
+    ipcMain.handle('shortcut:set', (event, accelerator) => {
+      // Only the app's own pages may change it.
+      if (!isOurs(event.senderFrame.url) || typeof accelerator !== 'string') return { ok: false, shortcut: registered || readShortcut() };
+      const ok = useShortcut(accelerator);
+      if (ok) saveShortcut(accelerator);
+      return { ok, shortcut: registered || readShortcut() };
+    });
     /* Showing the quick-add window activates the app, and macOS reports that
        as a Dock click: left alone, the main window would be brought up (or
        opened again, if it was closed) behind every shortcut press. */
