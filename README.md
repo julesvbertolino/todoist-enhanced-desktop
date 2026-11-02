@@ -39,14 +39,19 @@ This shell only changes when you download a new version here, which is rare.
 
 ## The shortcut
 
-Option + Space can be changed, if another app already uses it, in
-`~/Library/Application Support/enhanced-for-todoist-desktop/config.json`:
+Option + Space can be changed in the app: **Settings** in Enhanced for Todoist,
+**Quick Add shortcut**, click it, then press the new keys. If another app
+already uses them, the previous shortcut stays and the app says so.
 
-```json
-{ "quickAddShortcut": "Alt+Shift+Space" }
-```
+It is kept in
+`~/Library/Application Support/enhanced-for-todoist-desktop/config.json`
+(`{ "quickAddShortcut": "Alt+Shift+Space" }`, in Electron's accelerator
+syntax), which can also be edited by hand. `QUICKADD_SHORTCUT` in the
+environment does the same without saving it.
 
-(`QUICKADD_SHORTCUT` in the environment does the same.)
+Choosing a shortcut needs **version 1.1** of this app. The site is always the
+newest, but the window around it only changes when you download it again: an
+older app tells you so in Settings and links to the download.
 
 ## Privacy
 
