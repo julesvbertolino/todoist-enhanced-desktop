@@ -19,7 +19,8 @@
   "build": {
     "appId": "fr.julesbertolino.todoistenhanced.desktop",
     "productName": "Enhanced for Todoist",
-    "files": ["main.js", "preload.js", "package.json"],
+    "protocols": [{ "name": "Enhanced sign-in", "schemes": ["enhanced-todoist"] }],
+    "files": ["main.js", "preload.js", "oauth-callback.js", "package.json"],
     "directories": { "buildResources": "build" },
     "mac": {
       "category": "public.app-category.productivity",
