@@ -8,6 +8,8 @@ contextBridge.exposeInMainWorld('enhancedDesktop', {
   // function, which is how the site knows to offer the new download instead.
   getQuickAddShortcut: () => ipcRenderer.invoke('shortcut:get'),
   setQuickAddShortcut: (accelerator) => ipcRenderer.invoke('shortcut:set', accelerator),
+  openSignIn: (url) => ipcRenderer.invoke('oauth:open', url),
+  testMode: process.env.ENHANCED_TEST_MODE === '1',
 });
 
 // The quick-add window is kept alive and shown again on each shortcut press.

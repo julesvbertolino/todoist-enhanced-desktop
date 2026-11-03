@@ -3,6 +3,10 @@ const {
 } = require('electron');
 const fs = require('node:fs');
 const path = require('node:path');
+const { oauthCallback } = require('./oauth-callback');
+
+// The local test build gets its own session and settings, separate from the installed app.
+if (process.env.ENHANCED_TEST_MODE === '1') app.setPath('userData', path.join(app.getPath('appData'), 'enhanced-for-todoist-local-test'));
 
 /* The site is the app: nothing is bundled, so a new deploy of it is a new
    version here the next time the window loads. Point ENHANCED_URL at
@@ -38,6 +42,17 @@ let quick = null;
 let mainWasFocused = false;
 let quickLoadedAt = 0;
 let quickShownAt = 0;
+const OAUTH_SCHEME = process.env.ENHANCED_TEST_MODE === '1' ? 'enhanced-todoist-test' : 'enhanced-todoist';
+
+function receiveOAuth(raw) {
+  const target = oauthCallback(raw, APP_URL, OAUTH_SCHEME);
+  if (!target || !main) return;
+  main.loadURL(target);
+  main.show();
+  main.focus();
+}
+
+app.on('open-url', (event, url) => { event.preventDefault(); receiveOAuth(url); });
 
 /* The quick-add window is created once and kept hidden, so without this it
    keeps showing whatever version of the site it loaded when the app started:
@@ -205,11 +220,21 @@ if (!app.requestSingleInstanceLock()) {
   });
 
   app.whenReady().then(() => {
+    app.setAsDefaultProtocolClient(OAUTH_SCHEME);
     buildMenu();
     createMain();
     createQuick();
     registerShortcut();
     ipcMain.on('quickadd:hide', hideQuick);
+    ipcMain.handle('oauth:open', async (event, raw) => {
+      try {
+        if (event.sender !== main?.webContents || !event.senderFrame || new URL(event.senderFrame.url).origin !== APP_ORIGIN || typeof raw !== 'string') return false;
+        const url = new URL(raw);
+        if (url.origin !== 'https://app.todoist.com' || url.pathname !== '/oauth/authorize') return false;
+        await shell.openExternal(url.href);
+        return true;
+      } catch { return false; }
+    });
     ipcMain.handle('shortcut:get', () => registered || readShortcut());
     ipcMain.handle('shortcut:set', (event, accelerator) => {
       // Only the app's own pages may change it.
