@@ -1,7 +1,7 @@
 {
   "name": "enhanced-for-todoist-desktop",
   "private": true,
-  "version": "1.1.2",
+  "version": "1.1.3",
   "description": "A native window around Enhanced for Todoist, with a global quick-add shortcut. It loads the hosted site, so the site's updates are the app's updates.",
   "author": "Jules-Valentin Bertolino",
   "license": "MIT",
