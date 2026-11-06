@@ -9,6 +9,9 @@ contextBridge.exposeInMainWorld('enhancedDesktop', {
   getQuickAddShortcut: () => ipcRenderer.invoke('shortcut:get'),
   setQuickAddShortcut: (accelerator) => ipcRenderer.invoke('shortcut:set', accelerator),
   openSignIn: (url) => ipcRenderer.invoke('oauth:open', url),
+  // Since 1.1.1: lets the site say when a newer app can be downloaded. An older app has no
+  // such function, which the site reads as "1.1.0 or older".
+  getVersion: () => ipcRenderer.invoke('app:version'),
   testMode: process.env.ENHANCED_TEST_MODE === '1',
 });
 
