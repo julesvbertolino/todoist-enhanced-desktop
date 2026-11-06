@@ -141,15 +141,19 @@ function createQuick() {
   quick.on('closed', () => { quick = null; });
 }
 
+/* The page is loaded again while the window is hidden, never on the press
+   that shows it: loading it then showed the page half drawn for an instant
+   before the composer, a flash of the whole app. */
+function refreshHiddenQuick() {
+  if (!quick || quick.isVisible() || !quickLoadedAt) return;
+  if (Date.now() - quickLoadedAt <= QUICK_MAX_AGE_MS) return;
+  quickLoadedAt = 0;
+  quick.webContents.reloadIgnoringCache();
+}
+
 function showQuick() {
   if (!quick) createQuick();
   mainWasFocused = Boolean(main && main.isFocused());
-  if (quickLoadedAt && Date.now() - quickLoadedAt > QUICK_MAX_AGE_MS) {
-    quickLoadedAt = 0;
-    quick.webContents.once('did-finish-load', showQuick);
-    quick.webContents.reloadIgnoringCache();
-    return;
-  }
   quickShownAt = Date.now();
   quick.center();
   quick.show();
@@ -160,6 +164,7 @@ function showQuick() {
 function hideQuick() {
   if (!quick || !quick.isVisible()) return;
   quick.hide();
+  refreshHiddenQuick();
   // Give the keyboard back to the app that was in front, unless this one was.
   if (process.platform === 'darwin' && !mainWasFocused) app.hide();
 }
@@ -227,6 +232,7 @@ if (!app.requestSingleInstanceLock()) {
     buildMenu();
     createMain();
     createQuick();
+    setInterval(refreshHiddenQuick, 60 * 1000);
     registerShortcut();
     ipcMain.on('quickadd:hide', hideQuick);
     ipcMain.handle('oauth:open', async (event, raw) => {
