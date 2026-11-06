@@ -129,6 +129,9 @@ function createQuick() {
   });
   // Over other apps' full-screen windows and on whichever Space is current.
   quick.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  /* On macOS that call turns the app into an accessory: no Dock icon and no
+     Cmd+Tab entry. The Dock is shown again right after it. */
+  if (process.platform === 'darwin') app.dock?.show();
   quick.setAlwaysOnTop(true, 'floating');
   guardNavigation(quick);
   quick.loadURL(`${APP_URL}${APP_URL.includes('?') ? '&' : '?'}quickadd`);
