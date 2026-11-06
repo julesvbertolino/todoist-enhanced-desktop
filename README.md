@@ -37,6 +37,17 @@ new release of Enhanced for Todoist is there the next time the window loads
 (the quick-add window reloads its page when it is more than ten minutes old).
 This shell only changes when you download a new version here, which is rare.
 
+Since 1.1.1 the app tells the site which version it is, and the site shows a
+"new Mac app is available" card with a download button when a newer one has
+been published. There is no automatic replacement: the app is not signed with
+an Apple Developer certificate, which macOS needs for that. An app older than
+1.1.1 does not say its version, and is offered the update too.
+
+To publish one: raise `version` in `package.json`, tag it (`git tag v1.1.2 &&
+git push origin v1.1.2`), wait for the Release workflow to attach the two
+`.dmg` files, then raise `MAC_APP_LATEST` in the site's `src/app-info.ts` so
+the card appears.
+
 ## The shortcut
 
 Option + Space can be changed in the app: **Settings** in Enhanced for Todoist,

@@ -238,6 +238,7 @@ if (!app.requestSingleInstanceLock()) {
         return true;
       } catch { return false; }
     });
+    ipcMain.handle('app:version', (event) => (isOurs(event.senderFrame.url) ? app.getVersion() : null));
     ipcMain.handle('shortcut:get', () => registered || readShortcut());
     ipcMain.handle('shortcut:set', (event, accelerator) => {
       // Only the app's own pages may change it.
