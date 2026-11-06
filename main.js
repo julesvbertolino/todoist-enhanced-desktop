@@ -40,6 +40,7 @@ function saveShortcut(accelerator) {
 let main = null;
 let quick = null;
 let mainWasFocused = false;
+let mainWasVisible = false;
 let quickLoadedAt = 0;
 let quickShownAt = 0;
 const OAUTH_SCHEME = process.env.ENHANCED_TEST_MODE === '1' ? 'enhanced-todoist-test' : 'enhanced-todoist';
@@ -154,10 +155,13 @@ function refreshHiddenQuick() {
 function showQuick() {
   if (!quick) createQuick();
   mainWasFocused = Boolean(main && main.isFocused());
+  mainWasVisible = Boolean(main && main.isVisible());
   quickShownAt = Date.now();
   quick.center();
   quick.show();
   quick.focus();
+  // Showing the composer unhides an app that was hidden, main window included.
+  if (process.platform === 'darwin' && main && !mainWasVisible) main.hide();
   quick.webContents.send('quickadd:show');
 }
 
@@ -166,7 +170,13 @@ function hideQuick() {
   quick.hide();
   refreshHiddenQuick();
   // Give the keyboard back to the app that was in front, unless this one was.
-  if (process.platform === 'darwin' && !mainWasFocused) app.hide();
+  if (process.platform === 'darwin' && !mainWasFocused) {
+    /* Hiding the app also hides the main window as part of it, and showing the
+       composer again shows the whole app: the main window came back with every
+       shortcut press. A window that was closed or hidden before stays hidden. */
+    if (main && !mainWasVisible) main.hide();
+    app.hide();
+  }
 }
 
 function toggleQuick() {
